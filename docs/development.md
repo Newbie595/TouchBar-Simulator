@@ -18,14 +18,15 @@
 
 ## 本机准备
 
-1. 安装完整 Xcode。macOS 15.8.1 可使用 Xcode 26.3；请在 [Apple Developer 下载页面](https://developer.apple.com/download/all/?q=Xcode%2026.3)选择兼容版本。Command Line Tools 单独安装不足以构建这个 Xcode 工程。
-2. 安装完成后，在终端选择 Xcode 并完成首次配置：
+1. 安装完整 Xcode。macOS 15.8.1 可使用 Xcode 26.3；请在 [Apple Developer 下载页面](https://developer.apple.com/download/all/?q=Xcode%2026.3)选择兼容版本，M1 选择 Apple silicon 版。Command Line Tools 单独安装不足以构建这个 Xcode 工程。解开 `.xip` 后把 `Xcode.app` 放进 `/Applications`。
+2. 首次打开 Xcode，阅读并自行接受 Xcode 与 Apple SDK 许可协议。然后完成首次配置并验证版本：
 
    ```bash
-   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
-   sudo xcodebuild -runFirstLaunch
-   xcodebuild -version
+   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -runFirstLaunch
+   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -version
    ```
+
+   如果要让所有终端默认使用 Xcode，而不是原有的 Command Line Tools，可再运行 `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`。这需要你在终端输入本机管理员密码；本项目的构建脚本会自动识别 `/Applications/Xcode.app`，无需先更改全局选择。
 
 3. 在仓库根目录运行 `bash scripts/build-dmg.sh`。脚本会构建 `arm64` 和 `x86_64` 两个架构、临时签名、验证应用，并生成 `build/TouchBar-Simulator-universal.dmg`。DMG 内的应用叫 `TouchBar Simulator (Newbie595).app`，便于和旧版区分。
 
