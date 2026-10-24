@@ -8,9 +8,17 @@ app_path="$derived_data/Build/Products/Release/TouchBar Simulator.app"
 service_path="$app_path/Contents/XPCServices/TouchBarSimulatorService.xpc"
 dmg_path="$build_root/TouchBar-Simulator-universal.dmg"
 
+# A Mac can have full Xcode installed while xcode-select still points at the
+# standalone Command Line Tools. Prefer the normal selection, then fall back
+# to /Applications/Xcode.app without requiring an administrator password.
+if ! xcodebuild -version >/dev/null 2>&1 && \
+   [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
+    export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
+fi
+
 if ! xcodebuild -version >/dev/null 2>&1; then
-    echo '完整 Xcode 未安装或尚未通过 xcode-select 选中。' >&2
-    echo '请先安装兼容当前 macOS 的 Xcode，再运行 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer。' >&2
+    echo '完整 Xcode 未安装、许可未接受，或尚未通过 xcode-select 选中。' >&2
+    echo '请安装兼容当前 macOS 的 Xcode，将它放入 /Applications，并完成首次启动配置。' >&2
     exit 1
 fi
 
