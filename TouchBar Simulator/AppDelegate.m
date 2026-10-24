@@ -64,7 +64,7 @@
     NSRemoteView *remoteView = [[NSRemoteView alloc] initWithFrame:CGRectMake(0, 0, 1004, 30)];
     self.remoteView = remoteView;
     [remoteView setSynchronizesImplicitAnimations:NO];
-    [remoteView setServiceName:@"com.github.jslegendre.TouchBarSimulatorService"];
+    [remoteView setServiceName:@"com.github.Newbie595.TouchBarSimulatorService"];
     [remoteView setServiceSubclassName:@"TouchBarSimulatorService"];
     [remoteView advanceToRunPhaseIfNeeded:^(NSError *err){
         dispatch_async(dispatch_get_main_queue(), ^(){

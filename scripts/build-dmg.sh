@@ -53,7 +53,7 @@ codesign --verify --deep --strict --verbose=2 "$app_path"
 
 staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT
-ditto "$app_path" "$staging/TouchBar Simulator.app"
+ditto "$app_path" "$staging/TouchBar Simulator (Newbie595).app"
 ln -s /Applications "$staging/Applications"
 hdiutil create -quiet -ov -format UDZO -volname 'TouchBar Simulator' \
     -srcfolder "$staging" "$dmg_path"

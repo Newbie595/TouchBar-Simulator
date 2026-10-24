@@ -2,8 +2,9 @@
 
 ## 先确认运行的是哪个程序
 
-这份仓库来自 `jslegendre/TouchBar-Simulator`，Bundle ID 是
-`com.github.jslegendre.TouchBar-Simulator`。同名的 Sindre Sorhus 软件 Bundle ID 是
+这份仓库来自 `jslegendre/TouchBar-Simulator`，原版 Bundle ID 是
+`com.github.jslegendre.TouchBar-Simulator`；这个 fork 的构建使用独立的
+`com.github.Newbie595.TouchBar-Simulator`。同名的 Sindre Sorhus 软件 Bundle ID 是
 `com.sindresorhus.Touch-Bar-Simulator`；它有 Docking、Opacity、Launch at Login 等菜单，
 这份仓库目前没有这些功能。改动本仓库不会改变已安装的另一款程序。
 
@@ -26,7 +27,7 @@
    xcodebuild -version
    ```
 
-3. 在仓库根目录运行 `bash scripts/build-dmg.sh`。脚本会构建 `arm64` 和 `x86_64` 两个架构、临时签名、验证应用，并生成 `build/TouchBar-Simulator-universal.dmg`。
+3. 在仓库根目录运行 `bash scripts/build-dmg.sh`。脚本会构建 `arm64` 和 `x86_64` 两个架构、临时签名、验证应用，并生成 `build/TouchBar-Simulator-universal.dmg`。DMG 内的应用叫 `TouchBar Simulator (Newbie595).app`，便于和旧版区分。
 
 这款应用使用 macOS 私有框架 `DFRFoundation` 和 `ViewBridge`。它们可能随系统更新变化，所以编译成功不等于当前系统上能正常获取触控栏；还需要在目标 Mac 上实际测试显示、点击与睡眠唤醒。
 
