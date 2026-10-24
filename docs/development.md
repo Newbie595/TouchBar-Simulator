@@ -43,6 +43,8 @@
 
 实体栏的**点击转发需要“辅助功能”权限**。如果窗口显示正常但点击没有作用，打开“系统设置 → 隐私与安全性 → 辅助功能”，允许这份 fork 构建的 `TouchBar Simulator (Newbie595).app`。它与原来安装的 Sindre Sorhus 版是两款不同应用，旧版获得的权限不会自动转给新版。授权后重新打开测试版再试。仅查看画面不需要这项权限。
 
+本地和 CI 的测试 DMG 使用临时签名。每次修改代码再构建，签名哈希可能变化；系统设置中的开关即使显示“已开启”，旧授权也可能不再匹配新构建。如果重启后点击仍无效，先确认列表中选的是**无空格**的 `TouchBar Simulator`，将这个旧条目移除，再通过“+”添加当前正在运行的 `.app` 并开启；不要移除 Sindre 版的 `Touch Bar Simulator`。正式分发时使用自己的稳定 Developer ID 签名和公证，可避免测试版反复构建造成的授权身份变化。
+
 ## 不安装 Xcode 时从 GitHub 下载
 
 推送分支或手动运行仓库的 **Actions → Build macOS DMG** 后，打开该次运行的 **Artifacts**，下载 `TouchBar-Simulator-universal`。GitHub 会先提供一个 ZIP，解压得到 DMG。CI 构建失败时不会生成可下载 DMG；请先查看构建日志。
