@@ -4,6 +4,8 @@ The first (open source) touchbar simulator (that I've seen) to use the new "2nd 
 
 This simulator is also built the same way Apple built theirs for Xcode. Using an XPC service to render the touchbar display stream instead of the main app with the (also undocumented) ViewBridge framework. I would expect this to be pretty sturdy for at least the rest of Big Surs run.
 
+On Macs with a built-in Touch Bar, this fork now captures the hardware display in the main app process so the window matches the physical bar. Macs without a built-in Touch Bar continue to use the original XPC simulator path. The hardware path restarts after display wake or session unlock and can be restarted by right-clicking its window. See [docs/development.md](docs/development.md) for limitations and testing steps.
+
 ## Development and DMG builds
 
 For a Chinese guide to installing Xcode, building a universal Apple Silicon/Intel DMG, downloading GitHub Actions artifacts, and testing sleep/wake recovery, see [docs/development.md](docs/development.md).

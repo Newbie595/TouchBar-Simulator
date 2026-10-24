@@ -35,6 +35,14 @@
 
 这款应用使用 macOS 私有框架 `DFRFoundation` 和 `ViewBridge`。它们可能随系统更新变化，所以编译成功不等于当前系统上能正常获取触控栏；还需要在目标 Mac 上实际测试显示、点击与睡眠唤醒。
 
+### 实体 Touch Bar 与模拟 Touch Bar
+
+有实体 Touch Bar 的 Mac 会在主应用进程中读取实体显示流，画面应与 `Command-Shift-6` 的硬件快照一致。原因是原先 XPC 服务创建的是另一个 `DFRTouchBarSimulator`，它可能显示不同的内容；本机 macOS 15.8.1 上，尝试在 XPC 服务内读取实体显示流还会得到全黑帧。没有实体 Touch Bar 的 Mac 继续使用原来的 XPC 模拟路径。
+
+实体显示流启动后若首帧全黑，应用会等待有效画面并有限重试。睡眠、屏幕熄灭和会话解锁后会清除旧画面并重建流。若系统恢复较慢，可以在模拟器窗口内右键选择“重新连接 Touch Bar”，无需退出程序。
+
+实体栏的**点击转发需要“辅助功能”权限**。如果窗口显示正常但点击没有作用，打开“系统设置 → 隐私与安全性 → 辅助功能”，允许这份 fork 构建的 `TouchBar Simulator (Newbie595).app`。它与原来安装的 Sindre Sorhus 版是两款不同应用，旧版获得的权限不会自动转给新版。授权后重新打开测试版再试。仅查看画面不需要这项权限。
+
 ## 不安装 Xcode 时从 GitHub 下载
 
 推送分支或手动运行仓库的 **Actions → Build macOS DMG** 后，打开该次运行的 **Artifacts**，下载 `TouchBar-Simulator-universal`。GitHub 会先提供一个 ZIP，解压得到 DMG。CI 构建失败时不会生成可下载 DMG；请先查看构建日志。
@@ -50,9 +58,9 @@ M1 原生运行 `arm64`，Intel Mac 运行 `x86_64`。通用二进制同时包�
 
 ## 睡眠唤醒修复的验证
 
-1. 先退出其他同名应用，再运行本仓库构建的版本。
+1. 先退出其他同名应用，再运行本仓库构建的版本。用 Bundle ID 确认当前程序是 `com.github.Newbie595.TouchBar-Simulator`。
 2. 记下睡眠前模拟器及实体 Touch Bar 的内容，锁屏、熄屏、唤醒、解锁。
 3. 切换前台应用，让 Touch Bar 内容改变；确认模拟器同步更新且点击可用。
-4. 连续重复几轮，并检查“控制台”中是否出现 `Touch Bar display stream failed to start` 或 `Touch Bar view service connection failed`。若仍失败，记录 macOS 版本、触发步骤、应用 Bundle ID 和相关日志。
+4. 连续重复几轮，并检查“控制台”中是否出现 `Physical Touch Bar stream returned a blank first frame`、`Physical Touch Bar stream did not recover` 或 `Touch Bar view service connection failed`。若仍失败，先右键窗口尝试重新连接，并记录 macOS 版本、触发步骤、应用 Bundle ID 和相关日志。
 
-本次恢复逻辑在唤醒后重建 XPC 远端视图、DFR 模拟器和显示流；在失败时有限重试，并丢弃旧帧，避免把过时的界面留在屏幕上。尚未在真实睡眠唤醒场景验证前，不能认为故障已彻底解决。
+本次恢复逻辑在实体 Touch Bar 路径上重建主进程显示流，在无实体栏的模拟路径上重建 XPC 远端视图、DFR 模拟器和显示流；在失败时有限重试，并丢弃旧帧，避免把过时的界面留在屏幕上。尚未在真实睡眠唤醒场景验证前，不能认为故障已彻底解决。
