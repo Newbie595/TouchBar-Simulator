@@ -8,9 +8,9 @@ app_path="$derived_data/Build/Products/Release/TouchBar Simulator.app"
 service_path="$app_path/Contents/XPCServices/TouchBarSimulatorService.xpc"
 dmg_path="$build_root/TouchBar-Simulator-universal.dmg"
 
-# A Mac can have full Xcode installed while xcode-select still points at the
-# standalone Command Line Tools. Prefer the normal selection, then fall back
-# to /Applications/Xcode.app without requiring an administrator password.
+# 即使已安装完整 Xcode，xcode-select 也可能仍指向独立的命令行工具。
+# 先使用当前设置；若不可用则改用 /Applications/Xcode.app，
+# 无需管理员密码即可构建这个项目。
 if ! xcodebuild -version >/dev/null 2>&1 && \
    [[ -d /Applications/Xcode.app/Contents/Developer ]]; then
     export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
@@ -24,8 +24,8 @@ fi
 
 mkdir -p "$build_root"
 
-# Build both Apple Silicon and Intel slices so one DMG works on both Macs.
-# Signing is done after the build with an ad-hoc identity for personal testing.
+# 同时构建 Apple 芯片和 Intel 架构，让一个 DMG 可用于两类 Mac。
+# 构建完成后使用临时签名，供个人测试。
 xcodebuild \
     -project "$project_root/TouchBar Simulator.xcodeproj" \
     -scheme 'TouchBar Simulator' \
@@ -51,8 +51,8 @@ for binary in "$app_path/Contents/MacOS/TouchBar Simulator" \
     }
 done
 
-# Sign the nested XPC service first, then the containing app. Ad-hoc signing
-# allows local testing but does not replace Developer ID signing/notarization.
+# 先签名内嵌的 XPC 服务，再签名主应用。临时签名仅供本机测试，
+# 公开分发仍需 Developer ID 签名与 Apple 公证。
 codesign --force --sign - --timestamp=none "$service_path"
 codesign --force --sign - --timestamp=none \
     --entitlements "$project_root/TouchBar Simulator/TouchBar_Simulator.entitlements" \

@@ -47,10 +47,10 @@
 
 ## 不安装 Xcode 时从 GitHub 下载
 
-推送分支或手动运行仓库的 **Actions → Build macOS DMG** 后，打开该次运行的 **Artifacts**，下载 `TouchBar-Simulator-universal`。GitHub 会先提供一个 ZIP，解压得到 DMG。CI 构建失败时不会生成可下载 DMG；请先查看构建日志。
+推送分支或手动运行仓库的 **Actions → 构建 macOS DMG** 后，打开该次运行的 **Artifacts**，下载 `TouchBar-Simulator-universal`。GitHub 会先提供一个 ZIP，解压得到 DMG。CI 构建失败时不会生成可下载 DMG；请先查看构建日志。
 如果 GitHub 在 fork 中提示 Actions 尚未启用，需要先在仓库的 Actions 页面启用工作流。
 
-打正式版本时，给已验证的提交创建 `v` 开头的标签，例如 `v1.2.0`，并推送标签。工作流会把 DMG 附加到 GitHub Releases。建议先用 Actions 的测试产物验证运行，再创建标签。
+发布版本时，给已验证的提交创建 `v` 开头的标签，例如 `v1.2.0`。工作流会把 DMG 附加到对应的 GitHub Release。建议先用 Actions 的测试产物验证运行，再发布预发布版本供更多机器试用。
 
 脚本使用临时 ad-hoc 签名，适合个人测试；它没有 Apple Developer ID 公证。下载后若 macOS 拦截，请在“系统设置 → 隐私与安全性”中确认自己构建并下载的应用，再按系统提示打开。公开分发若希望用户正常双击安装，需要自己的 Developer ID 证书以及 Apple notarization；不要把证书或密码提交到仓库。
 
@@ -65,4 +65,4 @@ M1 原生运行 `arm64`，Intel Mac 运行 `x86_64`。通用二进制同时包�
 3. 切换前台应用，让 Touch Bar 内容改变；确认模拟器同步更新且点击可用。
 4. 连续重复几轮，并检查“控制台”中是否出现 `Physical Touch Bar stream returned a blank first frame`、`Physical Touch Bar stream did not recover` 或 `Touch Bar view service connection failed`。若仍失败，先右键窗口尝试重新连接，并记录 macOS 版本、触发步骤、应用 Bundle ID 和相关日志。
 
-本次恢复逻辑在实体 Touch Bar 路径上重建主进程显示流，在无实体栏的模拟路径上重建 XPC 远端视图、DFR 模拟器和显示流；在失败时有限重试，并丢弃旧帧，避免把过时的界面留在屏幕上。尚未在真实睡眠唤醒场景验证前，不能认为故障已彻底解决。
+本次恢复逻辑在实体 Touch Bar 路径上重建主进程显示流，在无实体栏的模拟路径上重建 XPC 远端视图、DFR 模拟器和显示流；在失败时有限重试，并丢弃旧帧，避免把过时的界面留在屏幕上。已在这台 M1 Mac 上完成一次真实合盖、打开、解锁测试；仍建议在不同应用和多轮睡眠后继续验证。

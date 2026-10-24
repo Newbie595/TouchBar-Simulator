@@ -2,7 +2,7 @@
 //  AppDelegate.m
 //  TouchBar Simulator
 //
-//  Created by Jeremy on 8/15/20.
+//  Jeremy 于 2020-08-15 创建。
 //
 
 #import <ViewBridge/ViewBridge.h>
@@ -11,8 +11,8 @@
 #import <os/log.h>
 #import "AppDelegate.h"
 
-// The public SDK deliberately omits these Touch Bar and display-stream entry
-// points. Resolve them at runtime so a future macOS can fail gracefully.
+// 公共 SDK 未声明这些触控栏与显示流接口。运行时解析私有符号，
+// 以便系统版本移除接口时记录错误，而不是在启动阶段直接崩溃。
 typedef CGDisplayStreamRef (*TBSCreatePhysicalStreamFunction)(int, dispatch_queue_t,
                                                               CGDisplayStreamFrameAvailableHandler);
 typedef CGError (*TBSDisplayStreamFunction)(CGDisplayStreamRef);
@@ -28,10 +28,9 @@ static TBSDisplayStreamFunction TBSStreamFunction(const char *name) {
 }
 
 static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
-    // In the reproduced failure WindowServer returns a valid 2008x60 surface
-    // filled entirely with black while the hardware still shows its control
-    // strip. A successful CGDisplayStreamStart and frame callback are therefore
-    // insufficient: accept the stream only once real pixels are present.
+    // 故障复现时，WindowServer 返回的 2008×60 画面全部为黑色，
+    // 但实体触控栏仍显示控制区。显示流启动成功、收到帧都不足以证明恢复；
+    // 必须等到首帧出现非黑色像素，才把它作为可用画面。
     if (IOSurfaceLock(surface, kIOSurfaceLockReadOnly, NULL) != kIOReturnSuccess) return YES;
     size_t width = IOSurfaceGetWidth(surface);
     size_t height = IOSurfaceGetHeight(surface);
@@ -47,8 +46,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
             }
         }
     } else {
-        // If the private API changes its pixel layout, don't discard frames
-        // solely because this diagnostic cannot understand their format.
+        // 如果私有接口改变像素格式，不要仅因当前检查方法无法识别格式就丢弃画面。
         visible = YES;
     }
     IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
@@ -64,7 +62,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
 - (BOOL)acceptsFirstMouse:(NSEvent *)event { return YES; }
 
 - (void)postTouchBarEvent:(NSEvent *)event {
-    // Do not send invisible clicks into the hardware while the stream is down.
+    // 显示流断开时不向实体触控栏发送用户看不见的点击。
     if (!self.layer.contents) return;
     if (self.bounds.size.width <= 0 || self.bounds.size.height <= 0) return;
     static TBSPostTouchBarEventFunction postEvent = NULL;
@@ -75,7 +73,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
     });
     if (!postEvent) return;
 
-    // Map the resized window back to the Touch Bar's 1004 x 30 point space.
+    // 将缩放后的窗口坐标换算回触控栏的 1004×30 点坐标系。
     NSPoint point = [self convertPoint:event.locationInWindow fromView:nil];
     point.x *= 1004.0 / self.bounds.size.width;
     point.y *= 30.0 / self.bounds.size.height;
@@ -93,8 +91,8 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
 - (void)mouseMoved:(NSEvent *)event { [self postTouchBarEvent:event]; }
 
 - (NSMenu *)menuForEvent:(NSEvent *)event {
-    // A manual reconnect lets the user recover without force-quitting if a
-    // future macOS changes when its private Touch Bar stream becomes ready.
+    // 如果系统恢复私有显示流的时机发生变化，用户可以手动重连，
+    // 不必强制退出整个应用。
     NSMenu *menu = [[NSMenu alloc] initWithTitle:@"Touch Bar"];
     NSMenuItem *refresh = [[NSMenuItem alloc] initWithTitle:@"重新连接 Touch Bar"
                                                    action:@selector(refreshTouchBar:)
@@ -164,8 +162,8 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
         [workspaceNotifications addObserver:self selector:@selector(workspaceWillSleep:)
                                       name:name object:nil];
     }
-    // A wake notification can precede the restored login session. Debounce
-    // all three so the final reconnect happens after WindowServer is ready.
+    // 唤醒通知可能早于登录会话恢复。将三类通知合并处理，
+    // 在 WindowServer 准备好后执行最后一次重连。
     for (NSNotificationName name in @[NSWorkspaceDidWakeNotification,
                                       NSWorkspaceScreensDidWakeNotification,
                                       NSWorkspaceSessionDidBecomeActiveNotification]) {
@@ -177,14 +175,12 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
     if (dfr) getStatus = dlsym(dfr, "DFRGetStatus");
     self.hasPhysicalTouchBar = getStatus && (getStatus() & 0x01);
     if (self.hasPhysicalTouchBar) {
-        // On this Mac, the independent DFRTouchBarSimulator in the XPC service
-        // can diverge from the real hardware. The host process receives the
-        // real SLSDFR display; the XPC service receives all-black surfaces.
+        // XPC 服务中的 DFRTouchBarSimulator 是独立实例，画面可能与实体栏不同。
+        // 本机实测：主进程能取得实体画面，XPC 服务却只收到全黑画面。
         [self installPhysicalView];
         [self startPhysicalStream];
     } else {
-        // Preserve the original second-generation simulated Touch Bar for
-        // Macs that have no built-in Touch Bar.
+        // 没有实体触控栏的 Mac 继续使用原有的第二代模拟触控栏。
         [self installRemoteView];
     }
 }
@@ -215,8 +211,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
 }
 
 - (void)stopPhysicalStream {
-    // Invalidate queued callbacks before stopping. A stale frame or "stopped"
-    // callback from the old stream must not revive the pre-sleep picture.
+    // 停止显示流前先让旧回调失效；旧帧或停止回调不能恢复休眠前的画面。
     self.physicalStreamGeneration += 1;
     self.waitingForFirstFrame = NO;
     self.loggedBlankFirstFrame = NO;
@@ -301,8 +296,8 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
         return;
     }
 
-    // A successful start can still deliver no image after wake. Static Touch
-    // Bar content later is normal, so only watch for the first complete frame.
+    // 唤醒后显示流可能启动成功却没有有效画面。只检查首帧；
+    // 后续内容保持静止属于正常情况，不应因此反复重启。
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         __strong typeof(weakSelf) self = weakSelf;
@@ -325,7 +320,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
     [remoteView setServiceSubclassName:@"TouchBarSimulatorService"];
     [remoteView advanceToRunPhaseIfNeeded:^(NSError *err){
         dispatch_async(dispatch_get_main_queue(), ^(){
-            // A newer wake/retry may already have replaced this connection.
+            // 后续唤醒或重试可能已经替换此连接，忽略过期回调。
             if (generation != self.remoteViewGeneration) return;
             if (err) {
                 NSLog(@"Touch Bar view service connection failed: %@", err);
@@ -388,7 +383,7 @@ static BOOL TBSFirstFrameContainsVisiblePixels(IOSurfaceRef surface) {
         return;
     }
 
-    // The fallback ViewBridge connection can also become stale while asleep.
+    // 备用的 ViewBridge 连接在休眠后也可能失效，需要重新建立。
     self.remoteView.hidden = YES;
     self.remoteViewGeneration += 1;
     NSUInteger generation = self.remoteViewGeneration;

@@ -2,7 +2,7 @@
 //  TouchBarSimulatorService.m
 //  TouchBarSimulatorService
 //
-//  Created by Jeremy on 8/15/20.
+//  Jeremy 于 2020-08-15 创建。
 //
 
 #import <AppKit/AppKit.h>
@@ -12,9 +12,9 @@
 #import "TouchBarSimulatorService.h"
 #import "DFRFoundation.h"
 
-// Recent macOS SDKs mark CGDisplayStreamStart/Stop unavailable. DFRFoundation
-// still hands us a CGDisplayStreamRef, so resolve the legacy entry points at
-// runtime and report failure if a future macOS removes them entirely.
+// 新版 macOS SDK 将 CGDisplayStreamStart/Stop 标记为不可用，
+// 但 DFRFoundation 仍会返回 CGDisplayStreamRef。运行时解析旧接口；
+// 如果将来系统彻底移除它们，就返回错误供恢复逻辑处理。
 static CGError TBSDisplayStreamCall(const char *symbol, CGDisplayStreamRef stream) {
     CGError (*function)(CGDisplayStreamRef) = dlsym(RTLD_DEFAULT, symbol);
     return function ? function(stream) : kCGErrorFailure;
@@ -35,9 +35,8 @@ typedef struct {
 - (void)mouseEvent:(NSEvent *)event {
     if (!self.simulator) return;
 
-    // First remove the window's border/padding, then scale from the current
-    // view size to the simulator's 1004 x 30 coordinate space. Scaling window
-    // coordinates before conversion displaced clicks after resizing.
+    // 先扣除窗口边框，再将视图坐标缩放到模拟器的 1004×30 点坐标系。
+    // 如果先缩放窗口坐标，调整窗口大小后点击位置会偏移。
     NSPoint location = [self convertPoint:event.locationInWindow fromView:nil];
     NSSize size = self.bounds.size;
     if (size.width <= 0 || size.height <= 0) return;
@@ -104,8 +103,8 @@ typedef struct {
 - (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)drawableSize {}
 
 - (void)drawInMTKView:(MTKView *)view {
-    // The display callback owns the pending IOSurface. Transfer that ownership
-    // to this draw so a newer frame cannot overwrite it before Metal is done.
+    // 显示回调暂时持有待绘制的 IOSurface。绘制时接管所有权，
+    // 避免 Metal 处理完成前被更新的画面覆盖。
     IOSurfaceRef surface = NULL;
     @synchronized (self) {
         surface = _surface;
@@ -184,7 +183,7 @@ typedef struct {
     [commandBuffer presentDrawable:_mtlView.currentDrawable];
     [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> completedBuffer) {
         (void)completedBuffer;
-        // The GPU may still be reading this frame after commit returns.
+        // 提交命令后 GPU 可能仍在读取此帧，完成回调中再释放。
         CFRelease(surface);
     }];
     [commandBuffer commit];
@@ -248,8 +247,8 @@ typedef struct {
     [self.view addSubview:self.streamView];
     self.streamView.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
 
-    // The stream and simulator are short-lived: sleep can invalidate both even
-    // while this view controller remains loaded in the remote service.
+    // 即使远端视图控制器仍在运行，休眠也可能让显示流和模拟器失效。
+    // 因此将它们视为需要按需重建的短期资源。
     NSNotificationCenter *workspaceNotifications = [NSWorkspace sharedWorkspace].notificationCenter;
     [workspaceNotifications addObserver:self selector:@selector(workspaceWillSleep:)
                                   name:NSWorkspaceWillSleepNotification object:nil];
@@ -276,8 +275,7 @@ typedef struct {
 }
 
 - (void)stopTouchBarStream {
-    // Invalidate callbacks before stopping: a final "stopped" frame may arrive
-    // asynchronously and must not restart a stream during sleep or shutdown.
+    // 停止前先让旧回调失效；异步到达的停止帧不能在休眠或退出时重启显示流。
     self.streamGeneration += 1;
     self.waitingForFirstFrame = NO;
     if (self.touchBarStream) {
@@ -296,7 +294,7 @@ typedef struct {
             _surface = NULL;
         }
     }
-    // Hide the last frame so an old Touch Bar layout cannot look interactive.
+    // 隐藏最后一帧，避免旧触控栏布局看起来仍可点击。
     self.mtlView.hidden = YES;
 }
 
@@ -341,7 +339,7 @@ typedef struct {
                 [self scheduleStreamRetryForGeneration:generation];
                 return;
             }
-            // Idle/blank frames are valid notifications but have no IOSurface.
+            // 空闲或空白帧属于正常通知，但不包含可绘制的 IOSurface。
             if (status != kCGDisplayStreamFrameStatusFrameComplete || !frameSurface) return;
             @synchronized (self) {
                 IOSurfaceRef previous = self->_surface;
@@ -360,9 +358,8 @@ typedef struct {
         [self scheduleStreamRetryForGeneration:generation];
         return;
     }
-    // A stream can report a successful start but never deliver a frame after
-    // wake. Retry only until its first complete frame; static content later is
-    // normal and must not trigger a watchdog restart.
+    // 唤醒后显示流可能报告启动成功，却始终不送来完整画面。
+    // 只在首帧到达前重试；后续画面静止属于正常情况。
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         __strong typeof(weakSelf) self = weakSelf;
@@ -384,7 +381,7 @@ typedef struct {
     [self stopTouchBarStream];
     NSUInteger generation = self.streamGeneration;
     __weak typeof(self) weakSelf = self;
-    // The Touch Bar service can become ready after the workspace wake event.
+    // 触控栏服务可能在工作区唤醒通知之后才完成恢复，稍后再启动。
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         __strong typeof(weakSelf) self = weakSelf;
