@@ -23,8 +23,11 @@
 
    ```bash
    DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -runFirstLaunch
+   DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -downloadComponent MetalToolchain
    DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcodebuild -version
    ```
+
+   Xcode 26.3 的 Metal 工具链按需下载；这个项目包含 `.metal` 着色器文件，缺少它时构建会报 `missing Metal Toolchain`。
 
    如果要让所有终端默认使用 Xcode，而不是原有的 Command Line Tools，可再运行 `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`。这需要你在终端输入本机管理员密码；本项目的构建脚本会自动识别 `/Applications/Xcode.app`，无需先更改全局选择。
 
