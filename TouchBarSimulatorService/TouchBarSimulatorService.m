@@ -34,17 +34,16 @@ typedef struct {
 
 - (void)mouseEvent:(NSEvent *)event {
     if (!self.simulator) return;
-    
-    NSPoint windowLocation = event.locationInWindow;
-    if (self.frame.size.width != 1004) {
-        CGFloat x = (windowLocation.x * 1004) / self.frame.size.width;
-        CGFloat y = (windowLocation.y * 30) / self.frame.size.height;
-        
-        windowLocation.x = x;
-        windowLocation.y = y;
-    }
-    NSPoint location = [self convertPoint:windowLocation fromView:nil];
-    
+
+    // First remove the window's border/padding, then scale from the current
+    // view size to the simulator's 1004 x 30 coordinate space. Scaling window
+    // coordinates before conversion displaced clicks after resizing.
+    NSPoint location = [self convertPoint:event.locationInWindow fromView:nil];
+    NSSize size = self.bounds.size;
+    if (size.width <= 0 || size.height <= 0) return;
+    location.x = location.x * 1004.0 / size.width;
+    location.y = location.y * 30.0 / size.height;
+
     DFRTouchBarSimulatorPostEventWithMouseActivity(self.simulator, event.type, location);
 }
 
