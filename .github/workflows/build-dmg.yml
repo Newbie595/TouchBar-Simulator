@@ -1,0 +1,38 @@
+name: Build macOS DMG
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and package universal app
+        run: bash scripts/build-dmg.sh
+
+      - name: Upload downloadable DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: TouchBar-Simulator-universal
+          path: build/TouchBar-Simulator-universal.dmg
+          if-no-files-found: error
+
+      - name: Attach DMG to tagged release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" build/TouchBar-Simulator-universal.dmg --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" build/TouchBar-Simulator-universal.dmg --generate-notes
+          fi
