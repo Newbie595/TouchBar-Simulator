@@ -18,7 +18,7 @@
 
 ## 本机准备
 
-1. 安装完整 Xcode。macOS 15.8.1 可使用 Xcode 26.3；请在 [Apple Developer 下载页面](https://developer.apple.com/download/all/?q=Xcode%2026.3)选择兼容版本，M1 选择 Apple silicon 版。Command Line Tools 单独安装不足以构建这个 Xcode 工程。解开 `.xip` 后把 `Xcode.app` 放进 `/Applications`。
+1. 安装完整 Xcode。macOS 15.8.1 可使用 Xcode 26.3；请在 [Apple Developer 下载页面](https://developer.apple.com/download/all/?q=Xcode%2026.3)选择兼容版本，M1 选择 Apple silicon 版。如果历史下载列表无法打开，可使用 [Apple 官方 Xcode 26.3 Apple silicon 下载链接](https://developer.apple.com/services-account/download?path=/Developer_Tools/Xcode_26.3/Xcode_26.3_Apple_silicon.xip)，需要登录 Apple Developer。Command Line Tools 单独安装不足以构建这个 Xcode 工程。解开 `.xip` 后把 `Xcode.app` 放进 `/Applications`。
 2. 首次打开 Xcode，阅读并自行接受 Xcode 与 Apple SDK 许可协议。然后完成首次配置并验证版本：
 
    ```bash
