@@ -1,0 +1,40 @@
+name: 构建 macOS DMG
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 构建并打包通用架构应用
+        run: bash scripts/build-dmg.sh
+
+      - name: 上传可下载的 DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: TouchBar-Simulator-universal
+          path: build/TouchBar-Simulator-universal.dmg
+          if-no-files-found: error
+
+      - name: 将 DMG 附加到对应版本
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" build/TouchBar-Simulator-universal.dmg --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" build/TouchBar-Simulator-universal.dmg \
+              --title "$GITHUB_REF_NAME · TouchBar Simulator" \
+              --notes "此版本提供 Apple 芯片与 Intel 通用 DMG，使用临时签名，供个人测试。安装和辅助功能授权说明见仓库开发文档。"
+          fi
