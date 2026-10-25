@@ -48,7 +48,15 @@
         [self.window setFrameFromString:savedWindowFrame];
     }
 
+    // 普通锁屏和解锁使用跨进程通知；工作区会话通知只用于切换用户的兜底。
     // 只在本应用亲历锁屏或屏幕休眠后重启，避免登录启动时形成重启循环。
+    NSDistributedNotificationCenter *screenNotifications = NSDistributedNotificationCenter.defaultCenter;
+    [screenNotifications addObserver:self selector:@selector(sessionDidResignActive:)
+                               name:@"com.apple.screenIsLocked" object:nil
+                 suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
+    [screenNotifications addObserver:self selector:@selector(sessionDidBecomeActive:)
+                               name:@"com.apple.screenIsUnlocked" object:nil
+                 suspensionBehavior:NSNotificationSuspensionBehaviorDeliverImmediately];
     NSNotificationCenter *notifications = NSWorkspace.sharedWorkspace.notificationCenter;
     [notifications addObserver:self selector:@selector(sessionDidResignActive:)
                          name:NSWorkspaceSessionDidResignActiveNotification object:nil];
@@ -92,12 +100,14 @@
 }
 
 - (void)sessionDidResignActive:(NSNotification *)notification {
+    NSLog(@"检测到锁屏或会话离开：%@", notification.name);
     self.sessionWasInactive = YES;
     self.restartPending = NO;
     self.sessionGeneration += 1;
 }
 
 - (void)sessionDidBecomeActive:(NSNotification *)notification {
+    NSLog(@"检测到解锁或会话返回：%@", notification.name);
     if (!self.sessionWasInactive || self.restartPending) return;
     self.sessionWasInactive = NO;
     self.restartPending = YES;
@@ -136,6 +146,7 @@
 }
 
 - (void)applicationWillTerminate:(NSNotification *)aNotification {
+    [NSDistributedNotificationCenter.defaultCenter removeObserver:self];
     [NSWorkspace.sharedWorkspace.notificationCenter removeObserver:self];
     [[NSUserDefaults standardUserDefaults] setObject:self.window.stringWithSavedFrame forKey:@"savedWindowFrame"];
     [[NSUserDefaults standardUserDefaults] synchronize];
