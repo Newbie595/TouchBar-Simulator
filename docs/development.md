@@ -5,8 +5,9 @@
 这份仓库来自 `jslegendre/TouchBar-Simulator`，原版 Bundle ID 是
 `com.github.jslegendre.TouchBar-Simulator`；这个 fork 的构建使用独立的
 `com.github.Newbie595.TouchBar-Simulator`。同名的 Sindre Sorhus 软件 Bundle ID 是
-`com.sindresorhus.Touch-Bar-Simulator`；它有 Docking、Opacity、Launch at Login 等菜单，
-这份仓库目前没有这些功能。改动本仓库不会改变已安装的另一款程序。
+`com.sindresorhus.Touch-Bar-Simulator`。本仓库原始 `master` 没有它的 Docking 等菜单；
+`codex/wake-recovery-dmg` 从 `master` 单独拉出，并为本 fork 新增了对应的窗口操作。
+改动本仓库不会改变已安装的另一款程序。
 
 在终端检查一个 `.app` 的身份：
 
@@ -39,7 +40,12 @@
 
 有实体 Touch Bar 的 Mac 会在主应用进程中读取实体显示流，画面应与 `Command-Shift-6` 的硬件快照一致。原因是原先 XPC 服务创建的是另一个 `DFRTouchBarSimulator`，它可能显示不同的内容；本机 macOS 15.8.1 上，尝试在 XPC 服务内读取实体显示流还会得到全黑帧。没有实体 Touch Bar 的 Mac 继续使用原来的 XPC 模拟路径。
 
-实体显示流启动后若首帧全黑，应用会等待有效画面并有限重试。睡眠、屏幕熄灭和会话解锁后会清除旧画面并重建流。若系统恢复较慢，可以在模拟器窗口内右键选择“重新连接 Touch Bar”，无需退出程序。
+实体显示流启动后若首帧全黑，应用会等待有效画面并自动重试。睡眠、屏幕熄灭和会话解锁后会清除旧画面并重建流。若系统恢复较慢，可以在模拟器窗口内右键选择“重新连接 Touch Bar”，无需退出程序。
+如果系统连续返回黑帧，前几次快速重试后会改为每 30 秒重连一次，直到收到有效画面或用户退出应用。
+
+如果解锁后窗口仍显示“使用触控 ID 解锁”，首帧虽然不黑却仍可能属于旧会话。因此会话解锁后除了立即重连，还会延迟四秒再重建一次显示流。这比按小时重启整个程序更贴近故障时机。状态栏菜单也提供“重新连接 Touch Bar”，供特殊情况下手动恢复。
+
+状态栏菜单可切换浮动、置顶和置底；置顶、置底时可调边距并启用靠边自动隐藏。还可调整不透明度、在所有桌面显示、截取实体栏快照以及在 macOS 13 及以上设置登录启动。浮动位置与设置会保存在本应用的偏好设置中，不会读取另一款软件的设置。
 
 实体栏的**点击转发需要“辅助功能”权限**。如果窗口显示正常但点击没有作用，打开“系统设置 → 隐私与安全性 → 辅助功能”，允许这份 fork 构建的 `TouchBar Simulator (Newbie595).app`。它与原来安装的 Sindre Sorhus 版是两款不同应用，旧版获得的权限不会自动转给新版。授权后重新打开测试版再试。仅查看画面不需要这项权限。
 
